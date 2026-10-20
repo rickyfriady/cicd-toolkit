@@ -133,8 +133,7 @@ jobs:
       run-audit: true
       build-script: "build"
       danger-enabled: true
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    secrets: inherit
 ```
 
 ---
