@@ -1,0 +1,31 @@
+name: "Self Test Actions & Workflows"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-setup:
+    name: "Test Composite Setup"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Test Setup Runtime (PNPM)
+        uses: ./composite/setup-runtime
+        with:
+          package-manager: "pnpm"
+          node-version: "22.x"
+          install-deps: "false"
+
+      - name: Verify Setup
+        run: |
+          pnpm --version
+          node --version

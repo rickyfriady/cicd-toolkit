@@ -1,0 +1,69 @@
+name: "Setup Runtime & Dependencies"
+description: "Cross-platform runtime setup supporting pnpm and bun with built-in cache and frozen install"
+inputs:
+  package-manager:
+    description: "Package manager to use: 'pnpm' | 'bun' | 'auto'"
+    required: false
+    default: "auto"
+  node-version:
+    description: "Node.js version to setup when using pnpm"
+    required: false
+    default: "22.x"
+  install-deps:
+    description: "Whether to execute frozen-lockfile installation"
+    required: false
+    default: "true"
+
+outputs:
+  resolved-pm:
+    description: "The resolved package manager ('pnpm' or 'bun')"
+    value: ${{ steps.detect-pm.outputs.pm }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect Package Manager
+      id: detect-pm
+      shell: bash
+      run: |
+        INPUT_PM="${{ inputs.package-manager }}"
+        if [ "$INPUT_PM" = "auto" ]; then
+          if [ -f "bun.lockb" ] || [ -f "bun.lock" ]; then
+            RESOLVED="bun"
+          else
+            RESOLVED="pnpm"
+          fi
+        else
+          RESOLVED="$INPUT_PM"
+        fi
+        echo "pm=$RESOLVED" >> $GITHUB_OUTPUT
+        echo "Resolved Package Manager: $RESOLVED"
+
+    # Setup PNPM path
+    - name: Setup PNPM
+      if: steps.detect-pm.outputs.pm == 'pnpm'
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Setup Node.js with PNPM cache
+      if: steps.detect-pm.outputs.pm == 'pnpm'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: "pnpm"
+
+    - name: Install dependencies via PNPM
+      if: steps.detect-pm.outputs.pm == 'pnpm' && inputs.install-deps == 'true'
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    # Setup BUN path
+    - name: Setup Bun
+      if: steps.detect-pm.outputs.pm == 'bun'
+      uses: oven-sh/setup-bun@v2
+
+    - name: Install dependencies via Bun
+      if: steps.detect-pm.outputs.pm == 'bun' && inputs.install-deps == 'true'
+      shell: bash
+      run: bun install --frozen-lockfile

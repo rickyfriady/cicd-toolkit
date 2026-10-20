@@ -1,0 +1,37 @@
+{
+  "name": "cicd-toolkit",
+  "version": "1.0.0",
+  "description": "Production-grade reusable GitHub Actions and Dangerfile review engine",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "danger:ci": "danger ci",
+    "danger:local": "danger pr",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "lint": "eslint .",
+    "knip": "knip",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "github-actions",
+    "ci-cd",
+    "dangerjs",
+    "code-review",
+    "quality-gate"
+  ],
+  "author": "Ricky Friadi <https://github.com/rickyfriady>",
+  "license": "MIT",
+  "dependencies": {
+    "danger": "^12.3.4",
+    "danger-plugin-istanbul-coverage": "^2.0.1",
+    "danger-plugin-lint-report": "^1.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "eslint": "^9.16.0",
+    "knip": "^5.41.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

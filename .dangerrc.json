@@ -1,0 +1,10 @@
+{
+  "ticketPattern": "^\\[[A-Za-z0-9_-]+\\]|^(\\w+(\\([\\w-]+\\))?:)",
+  "minDescriptionLength": 50,
+  "maxChangedLines": 400,
+  "maxChangedFiles": 50,
+  "enforcePackageVersion": false,
+  "coverageThreshold": 80,
+  "blockConsole": true,
+  "blockInlineStyles": true
+}
