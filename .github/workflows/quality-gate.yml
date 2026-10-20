@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: "22.x"
+      pnpm-version:
+        description: "PNPM version to install"
+        required: false
+        type: string
+        default: "9"
       coverage-threshold:
         description: "Minimum test coverage percentage required"
         required: false
@@ -55,6 +60,7 @@ jobs:
         with:
           package-manager: ${{ inputs.package-manager }}
           node-version: ${{ inputs.node-version }}
+          pnpm-version: ${{ inputs.pnpm-version }}
           install-deps: "true"
 
       - name: Create Reports Directory

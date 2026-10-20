@@ -9,6 +9,10 @@ inputs:
     description: "Node.js version to setup when using pnpm"
     required: false
     default: "22.x"
+  pnpm-version:
+    description: "Version of pnpm to install (default: 9)"
+    required: false
+    default: "9"
   install-deps:
     description: "Whether to execute frozen-lockfile installation"
     required: false
@@ -44,6 +48,7 @@ runs:
       if: steps.detect-pm.outputs.pm == 'pnpm'
       uses: pnpm/action-setup@v4
       with:
+        version: ${{ inputs.pnpm-version }}
         run_install: false
 
     - name: Setup Node.js with PNPM cache
