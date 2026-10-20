@@ -1,31 +1,46 @@
-name: "Self Test Actions & Workflows"
+name: "CI - Self Verification & Review"
 
 on:
   push:
-    branches: [main]
+    branches: [main, master, "feature/**"]
   pull_request:
-    branches: [main]
+    branches: ["**"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test-setup:
-    name: "Test Composite Setup"
+  self-test:
+    name: "Verification & Danger Review"
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Test Setup Runtime (PNPM)
+      - name: Setup Runtime via Composite Action
         uses: ./composite/setup-runtime
         with:
           package-manager: "pnpm"
           node-version: "22.x"
-          install-deps: "false"
+          install-deps: "true"
 
-      - name: Verify Setup
+      - name: Verify Tool Versions
         run: |
-          pnpm --version
           node --version
+          pnpm --version
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Run Danger Review Bot
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm run danger:ci || npx --yes danger ci
