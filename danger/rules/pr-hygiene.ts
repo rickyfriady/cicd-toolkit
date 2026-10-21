@@ -1,5 +1,5 @@
 import { danger, fail, warn, message } from "danger";
-import { DangerConfig } from "../config.js";
+import { DangerConfig } from "../config";
 import * as fs from "node:fs";
 import * as path from "node:path";
 

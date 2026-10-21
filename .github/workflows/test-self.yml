@@ -15,8 +15,10 @@ jobs:
     name: "Verification & Danger Review"
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
       contents: read
+      pull-requests: write
+      statuses: write
+      issues: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

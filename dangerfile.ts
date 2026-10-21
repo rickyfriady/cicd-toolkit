@@ -1,10 +1,10 @@
 import { schedule } from "danger";
 import { istanbulCoverage } from "danger-plugin-istanbul-coverage";
 import { scan } from "danger-plugin-lint-report";
-import { loadConfig } from "./danger/config.js";
-import { checkPRHygiene } from "./danger/rules/pr-hygiene.js";
-import { checkSecurity } from "./danger/rules/security.js";
-import { checkCodeHealth } from "./danger/rules/code-health.js";
+import { loadConfig } from "./danger/config";
+import { checkPRHygiene } from "./danger/rules/pr-hygiene";
+import { checkSecurity } from "./danger/rules/security";
+import { checkCodeHealth } from "./danger/rules/code-health";
 
 const config = loadConfig();
 
