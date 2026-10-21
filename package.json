@@ -25,7 +25,7 @@
   "license": "MIT",
   "dependencies": {
     "danger": "^12.3.4",
-    "danger-plugin-istanbul-coverage": "^2.0.1",
+    "danger-plugin-istanbul-coverage": "^1.6.2",
     "danger-plugin-lint-report": "^1.4.1"
   },
   "devDependencies": {
