@@ -1,7 +1,11 @@
-import { danger, fail, warn, message } from "danger";
 import { DangerConfig } from "../config";
 import * as fs from "node:fs";
 import * as path from "node:path";
+
+declare const danger: any;
+declare function fail(message: string): void;
+declare function warn(message: string): void;
+declare function message(message: string): void;
 
 export async function checkPRHygiene(config: DangerConfig): Promise<void> {
   const pr = danger.github.pr;

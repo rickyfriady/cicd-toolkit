@@ -1,6 +1,10 @@
-import { danger, fail, warn, markdown } from "danger";
 import * as fs from "node:fs";
 import * as path from "node:path";
+
+declare const danger: any;
+declare function fail(message: string): void;
+declare function warn(message: string): void;
+declare function markdown(message: string): void;
 
 interface AuditAdvisory {
   id: number;
