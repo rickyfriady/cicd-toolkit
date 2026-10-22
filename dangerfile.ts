@@ -7,7 +7,7 @@ import { checkPRHygiene } from "./danger/rules/pr-hygiene";
 import { checkSecurity } from "./danger/rules/security";
 import { checkCodeHealth } from "./danger/rules/code-health";
 
-declare function schedule(asyncFunction: () => Promise<void> | void): void;
+declare function schedule(promiseOrAsyncFunction: any): void;
 
 const config = loadConfig();
 

@@ -34,8 +34,8 @@ async function getAddedLines(file: string): Promise<string[]> {
     if (!diff || !diff.added) return [];
     return diff.added
       .split("\n")
-      .map((line) => line.replace(/^\+/, "").trim())
-      .filter((line) => line.length > 0 && !line.startsWith("//") && !line.startsWith("*"));
+      .map((line: string) => line.replace(/^\+/, "").trim())
+      .filter((line: string) => line.length > 0 && !line.startsWith("//") && !line.startsWith("*"));
   } catch {
     return [];
   }
