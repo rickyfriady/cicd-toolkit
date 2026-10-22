@@ -101,6 +101,17 @@ gitGraph
   - Flags unresolved imports and unused packages via Knip.
 - **Test Coverage:**
   - Enforces a minimum **80% coverage threshold** on statements, branches, functions, and lines.
+- **Bundle Size & Asset Budget Guard:**
+  - Scans `dist/` production assets and computes raw vs estimated gzip sizes.
+  - Warns on single assets exceeding `maxAssetSizeKB` (default: 350 KB) or total bundle exceeding budget (default: 1500 KB).
+- **Deep Secret Scanning & License Compliance:**
+  - High-entropy credential detector scanning diffs for AWS keys, OpenAI keys, Slack webhooks, and private certificates.
+  - Dependency license compliance checker blocking viral copyleft licenses (GPL, AGPL) in commercial repositories.
+
+### 3. Enterprise Automation Workflows
+- **Cross-Environment Matrix Testing:** Supports parallel verification across multiple Node.js versions (e.g. Node 20.x LTS & Node 22.x).
+- **Reusable PR Preview Deployment (`preview-deploy.yml`):** Automatically creates ephemeral preview deployments for PRs and comments the live URL directly on the PR thread.
+- **Automated Semantic Release (`release.yml`):** Inspects Conventional Commits upon merge to `master`, determines semantic bump (`patch` / `minor` / `major`), cuts a new Git Tag, and publishes GitHub Release notes.
 
 ---
 

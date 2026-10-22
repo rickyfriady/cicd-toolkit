@@ -6,5 +6,9 @@
   "enforcePackageVersion": false,
   "coverageThreshold": 80,
   "blockConsole": true,
-  "blockInlineStyles": true
+  "blockInlineStyles": true,
+  "maxAssetSizeKB": 350,
+  "maxTotalBundleKB": 1500,
+  "enforceLicenseCompliance": true,
+  "enforceSecretScanning": true
 }

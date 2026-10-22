@@ -11,6 +11,10 @@ export interface DangerConfig {
   blockConsole: boolean;
   blockInlineStyles: boolean;
   protectedBranches: string[];
+  maxAssetSizeKB: number;
+  maxTotalBundleKB: number;
+  enforceLicenseCompliance: boolean;
+  enforceSecretScanning: boolean;
 }
 
 export const DEFAULT_CONFIG: DangerConfig = {
@@ -23,6 +27,10 @@ export const DEFAULT_CONFIG: DangerConfig = {
   blockConsole: true,
   blockInlineStyles: true,
   protectedBranches: ["main", "master", "staging", "development"],
+  maxAssetSizeKB: 350,
+  maxTotalBundleKB: 1500,
+  enforceLicenseCompliance: true,
+  enforceSecretScanning: true,
 };
 
 export function loadConfig(): DangerConfig {

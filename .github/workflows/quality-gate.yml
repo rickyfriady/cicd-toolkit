@@ -43,11 +43,20 @@ on:
         required: false
         type: boolean
         default: true
+      enable-matrix:
+        description: "Whether to run test matrix across Node 20.x and 22.x"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   verify:
-    name: "Quality Gate Verification"
+    name: "Quality Gate Verification (${{ matrix.node-version }})"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ${{ inputs.enable-matrix && fromJSON('["20.x", "22.x"]') || fromJSON(format('["{0}"]', inputs.node-version)) }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -59,7 +68,7 @@ jobs:
         uses: rickyfriady/cicd-toolkit/composite/setup-runtime@v1
         with:
           package-manager: ${{ inputs.package-manager }}
-          node-version: ${{ inputs.node-version }}
+          node-version: ${{ matrix.node-version }}
           pnpm-version: ${{ inputs.pnpm-version }}
           install-deps: "true"
 

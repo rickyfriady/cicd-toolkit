@@ -6,10 +6,24 @@ import { loadConfig } from "./danger/config";
 import { checkPRHygiene } from "./danger/rules/pr-hygiene";
 import { checkSecurity } from "./danger/rules/security";
 import { checkCodeHealth } from "./danger/rules/code-health";
+import { checkBundleSize } from "./danger/rules/bundle-size";
+import { checkLicenseAndSecrets } from "./danger/rules/license-compliance";
 
 declare function schedule(promiseOrAsyncFunction: any): void;
+declare function markdown(message: string): void;
 
 const config = loadConfig();
+
+// Option A: Custom Branded Header Banner
+markdown(`
+<div align="center">
+
+### 🛡️ Ricky Friadi CI/CD Review Engine
+**Decacorn-Grade Code Governance & Automated Quality Gate**
+
+---
+</div>
+`);
 
 // 1. ESLint Checkstyle XML Scan (if report generated)
 const lintReportPath = path.join(process.cwd(), "reports/lint/lint-results.xml");
@@ -55,4 +69,14 @@ schedule(async () => {
   await checkPRHygiene(config);
   await checkSecurity();
   await checkCodeHealth(config);
+  await checkLicenseAndSecrets(config);
+  await checkBundleSize(config);
+
+  // Custom Branded Footer Signature
+  markdown(`
+---
+<div align="right">
+<sub>Reviewed with ❤️ by <b><a href="https://github.com/rickyfriady/cicd-toolkit">Ricky Friadi CI/CD Toolkit</a></b> • Standardized Quality Gates</sub>
+</div>
+  `);
 });
