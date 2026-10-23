@@ -1,0 +1,106 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { DangerConfig } from "../config";
+
+declare const danger: any;
+declare function fail(message: string): void;
+declare function warn(message: string): void;
+declare function markdown(message: string): void;
+
+const FORBIDDEN_LICENSES = [/GPL/i, /AGPL/i, /SSPL/i, /EUPL/i, /CPAL/i];
+
+const SECRET_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
+  { name: "AWS Access Key", pattern: /\bAKIA[0-9A-Z]{16}\b/ },
+  { name: "OpenAI Secret Key", pattern: /\bsk-(?:proj-)?[a-zA-Z0-9_-]{32,}\b/ },
+  { name: "GitHub Personal Access Token", pattern: /\b(?:ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{50,})\b/ },
+  { name: "Slack Webhook URL", pattern: /https:\/\/hooks\.slack\.com\/services\/T[0-9A-Z_]+\/B[0-9A-Z_]+\/[0-9A-Za-z_]+/ },
+  { name: "Private RSA / EC Key Header", pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
+  { name: "Generic Password Assignment", pattern: /(?:password|passwd|secret_key)\s*[:=]\s*["'][^"']{8,}["']/i },
+];
+
+async function scanDiffForSecrets(): Promise<string[]> {
+  const changedFiles = [...danger.git.modified_files, ...danger.git.created_files];
+  const detected: string[] = [];
+
+  for (const file of changedFiles) {
+    // Ignore lockfiles, minified files, test fixtures
+    if (file.endsWith("lock.yaml") || file.endsWith(".lockb") || file.includes("dist/") || file.endsWith(".min.js")) {
+      continue;
+    }
+    try {
+      const diff = await danger.git.diffForFile(file);
+      if (!diff || !diff.added) continue;
+
+      const lines = diff.added.split("\n");
+      for (const line of lines) {
+        if (!line.startsWith("+")) continue;
+        const clean = line.substring(1).trim();
+        for (const { name, pattern } of SECRET_PATTERNS) {
+          if (pattern.test(clean)) {
+            detected.push(`- \`${file}\`: Detected **${name}** pattern`);
+            break;
+          }
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+  return detected;
+}
+
+function checkDependenciesLicense(): { suspicious: string[] } {
+  const pkgPath = path.join(process.cwd(), "package.json");
+  if (!fs.existsSync(pkgPath)) return { suspicious: [] };
+
+  const suspicious: string[] = [];
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+    const deps = Object.keys(pkg.dependencies || {});
+
+    for (const dep of deps) {
+      const depPkgPath = path.join(process.cwd(), "node_modules", dep, "package.json");
+      if (fs.existsSync(depPkgPath)) {
+        try {
+          const depPkg = JSON.parse(fs.readFileSync(depPkgPath, "utf-8"));
+          const license = typeof depPkg.license === "string" ? depPkg.license : JSON.stringify(depPkg.license || "");
+          if (FORBIDDEN_LICENSES.some((reg) => reg.test(license))) {
+            suspicious.push(`\`${dep}\` (license: **${license}**)`);
+          }
+        } catch {
+          continue;
+        }
+      }
+    }
+  } catch {
+    // Graceful skip
+  }
+  return { suspicious };
+}
+
+export async function checkLicenseAndSecrets(config: DangerConfig): Promise<void> {
+  // 1. Secret Scanning in Diff
+  if (config.enforceSecretScanning) {
+    const secretHits = await scanDiffForSecrets();
+    if (secretHits.length > 0) {
+      fail(
+        `🚨 **CRITICAL: High-Entropy Secret / Credential Leak Detected!**\n\n` +
+        `The pull request diff introduces apparent credentials or secrets:\n` +
+        secretHits.join("\n") +
+        `\n\n*Revoke and rotate any committed secrets immediately. Secrets should always be stored in GitHub Secrets or vault systems.*`
+      );
+    }
+  }
+
+  // 2. Open Source License Compliance
+  if (config.enforceLicenseCompliance) {
+    const { suspicious } = checkDependenciesLicense();
+    if (suspicious.length > 0) {
+      warn(
+        `⚖️ **License Compliance Alert:** Found dependencies with potential copyleft / restrictive licenses:\n` +
+        suspicious.map((s) => `- ${s}`).join("\n") +
+        `\n*Reviewers please verify if these licenses comply with company open-source commercial policy.*`
+      );
+    }
+  }
+}

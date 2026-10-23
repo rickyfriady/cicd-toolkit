@@ -1,0 +1,101 @@
+name: "Automated Semantic Release"
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: "Semantic Versioning & Release"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Install Release Tooling
+        run: pnpm install --frozen-lockfile
+
+      - name: Determine Semantic Release & Create Tag
+        id: semantic-version
+        shell: bash
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Get latest tag or default to v1.0.0
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          echo "Current Tag: $LATEST_TAG"
+
+          # Strip 'v' prefix
+          VERSION="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Scan commits since last tag
+          COMMITS=$(git log "${LATEST_TAG}..HEAD" --oneline 2>/dev/null || git log -n 10 --oneline)
+
+          BUMP="none"
+          if echo "$COMMITS" | grep -qE "BREAKING CHANGE|feat!|fix!:"; then
+            BUMP="major"
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif echo "$COMMITS" | grep -qE "^[a-f0-9]+ feat(\(.*\))?:"; then
+            BUMP="minor"
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif echo "$COMMITS" | grep -qE "^[a-f0-9]+ fix(\(.*\))?:"; then
+            BUMP="patch"
+            PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "Bump Type: $BUMP"
+          echo "New Version: $NEW_VERSION"
+
+          if [ "$BUMP" != "none" ]; then
+            git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+            git push origin "$NEW_VERSION"
+            echo "new_tag=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "released=true" >> $GITHUB_OUTPUT
+          else
+            echo "released=false" >> $GITHUB_OUTPUT
+            echo "No version bump needed."
+          fi
+
+      - name: Create GitHub Release
+        if: steps.semantic-version.outputs.released == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = "${{ steps.semantic-version.outputs.new_tag }}";
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: `Release ${tag}`,
+              generate_release_notes: true,
+              draft: false,
+              prerelease: false
+            });

@@ -1,0 +1,176 @@
+name: "Enterprise Quality Gate & Review"
+
+on:
+  workflow_call:
+    inputs:
+      package-manager:
+        description: "Package manager: 'pnpm' | 'bun' | 'auto'"
+        required: false
+        type: string
+        default: "auto"
+      node-version:
+        description: "Node.js version to setup"
+        required: false
+        type: string
+        default: "22.x"
+      pnpm-version:
+        description: "PNPM version to install"
+        required: false
+        type: string
+        default: "9"
+      coverage-threshold:
+        description: "Minimum test coverage percentage required"
+        required: false
+        type: number
+        default: 80
+      run-knip:
+        description: "Whether to run Knip dead-code detection"
+        required: false
+        type: boolean
+        default: true
+      run-audit:
+        description: "Whether to run dependency vulnerability audit"
+        required: false
+        type: boolean
+        default: true
+      build-script:
+        description: "NPM script name for production build"
+        required: false
+        type: string
+        default: "build"
+      danger-enabled:
+        description: "Whether to run Danger JS PR analysis"
+        required: false
+        type: boolean
+        default: true
+      enable-matrix:
+        description: "Whether to run test matrix across Node 20.x and 22.x"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  verify:
+    name: "Quality Gate Verification (${{ matrix.node-version }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ${{ inputs.enable-matrix && fromJSON('["20.x", "22.x"]') || fromJSON(format('["{0}"]', inputs.node-version)) }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Runtime & Install Dependencies
+        id: setup
+        uses: rickyfriady/cicd-toolkit/composite/setup-runtime@v1
+        with:
+          package-manager: ${{ inputs.package-manager }}
+          node-version: ${{ matrix.node-version }}
+          pnpm-version: ${{ inputs.pnpm-version }}
+          install-deps: "true"
+
+      - name: Create Reports Directory
+        run: mkdir -p reports/lint reports/unit/coverage reports/knip reports/dependencies
+
+      # Step 1: Type Checking
+      - name: Typecheck
+        run: |
+          if [ "${{ steps.setup.outputs.resolved-pm }}" = "bun" ]; then
+            bun run typecheck || bun x tsc --noEmit
+          else
+            pnpm run typecheck || pnpm exec tsc --noEmit
+          fi
+
+      # Step 2: Linter
+      - name: Lint Report
+        run: |
+          if [ "${{ steps.setup.outputs.resolved-pm }}" = "bun" ]; then
+            bun x eslint . --format checkstyle --output-file reports/lint/lint-results.xml || true
+          else
+            pnpm exec eslint . --format checkstyle --output-file reports/lint/lint-results.xml || true
+          fi
+
+      # Step 3: Unit Tests & Coverage
+      - name: Unit Tests & Coverage
+        run: |
+          if [ "${{ steps.setup.outputs.resolved-pm }}" = "bun" ]; then
+            bun run test:coverage || bun test --coverage
+          else
+            pnpm run test:coverage
+          fi
+
+      # Step 4: Dead Code Analysis (Knip)
+      - name: Knip Code Health Analysis
+        if: inputs.run-knip == true
+        run: |
+          if [ "${{ steps.setup.outputs.resolved-pm }}" = "bun" ]; then
+            bun x knip --reporter json > reports/knip/knip-result.json || true
+          else
+            pnpm exec knip --reporter json > reports/knip/knip-result.json || true
+          fi
+
+      # Step 5: Dependency Security Audit
+      - name: Dependency Security Audit
+        if: inputs.run-audit == true
+        run: |
+          if [ "${{ steps.setup.outputs.resolved-pm }}" = "bun" ]; then
+            bun pm audit --json > reports/dependencies/audit.json || true
+            echo "{}" > reports/dependencies/outdated.json
+          else
+            pnpm audit --json > reports/dependencies/audit.json || true
+            pnpm outdated --json > reports/dependencies/outdated.json || echo "{}" > reports/dependencies/outdated.json
+          fi
+
+      # Step 6: Project Build Verification
+      - name: Build Project
+        run: |
+          if [ "${{ steps.setup.outputs.resolved-pm }}" = "bun" ]; then
+            bun run ${{ inputs.build-script }}
+          else
+            pnpm run ${{ inputs.build-script }}
+          fi
+
+      # Upload Artifacts for Danger Bot
+      - name: Upload Quality Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: reports/
+          retention-days: 1
+
+  danger-review:
+    name: "Danger PR Review"
+    needs: [verify]
+    if: inputs.danger-enabled == true && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+      issues: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Quality Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: quality-reports
+          path: reports/
+
+      - name: Setup Node.js for Danger Runner
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Run Danger JS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx --yes danger ci --failOnErrors

@@ -1,0 +1,25 @@
+name: "CI Pipeline"
+
+on:
+  push:
+    branches: [main, staging, development]
+  pull_request:
+    branches: [main, staging, development]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: "Enterprise Quality Gate"
+    uses: rickyfriady/cicd-toolkit/.github/workflows/quality-gate.yml@v1
+    with:
+      package-manager: "pnpm" # options: 'pnpm' | 'bun' | 'auto'
+      node-version: "22.x"
+      coverage-threshold: 80
+      run-knip: true
+      run-audit: true
+      build-script: "build"
+      danger-enabled: true
+    secrets: inherit

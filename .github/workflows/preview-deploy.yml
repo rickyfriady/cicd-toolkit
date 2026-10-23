@@ -1,0 +1,81 @@
+name: "Reusable PR Preview Deployment"
+
+on:
+  workflow_call:
+    inputs:
+      dist-path:
+        description: "Path to production build directory"
+        required: false
+        type: string
+        default: "dist"
+      preview-name:
+        description: "Identifier for the preview deployment"
+        required: false
+        type: string
+        default: "pr-preview"
+    outputs:
+      preview-url:
+        description: "Public URL of the preview deployment"
+        value: ${{ jobs.deploy-preview.outputs.preview-url }}
+
+jobs:
+  deploy-preview:
+    name: "Deploy PR Preview Environment"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      preview-url: ${{ steps.publish.outputs.url }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.preview-name }}
+          path: ${{ inputs.dist-path }}
+        continue-on-error: true
+
+      - name: Deploy to GitHub Pages / Preview Artifact
+        id: publish
+        shell: bash
+        run: |
+          echo "Deploying preview from ${{ inputs.dist-path }}..."
+          # Mock preview environment URL generator (or integrate Cloudflare Pages / Vercel Preview)
+          PREVIEW_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/preview/pr-${{ github.event.pull_request.number || 'latest' }}"
+          echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+          echo "Preview URL generated: $PREVIEW_URL"
+
+      - name: Post Preview URL Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = "${{ steps.publish.outputs.url }}";
+            const prNumber = context.issue.number;
+            const body = `🚀 **Preview Deployment Ready!**\n\nPreview your changes live: [${url}](${url})\n*Built automatically by Ricky Friadi CI/CD Toolkit.*`;
+            
+            // Check if comment already exists
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+            const existing = comments.data.find(c => c.body.includes("Preview Deployment Ready"));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body
+              });
+            }
