@@ -17,7 +17,7 @@ on:
         description: "PNPM version to install"
         required: false
         type: string
-        default: "lts"
+        default: "12.15.0"
       bun-version:
         description: "Bun version to install"
         required: false

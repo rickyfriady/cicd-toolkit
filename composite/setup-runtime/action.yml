@@ -10,9 +10,9 @@ inputs:
     required: false
     default: "lts/*"
   pnpm-version:
-    description: "Fallback PNPM version to install when package.json does not declare packageManager (default: 'lts')"
+    description: "Fallback PNPM version to install when package.json does not declare packageManager (default: '12.15.0')"
     required: false
-    default: "lts"
+    default: "12.15.0"
   bun-version:
     description: "Bun version to install when using bun (default: 'latest' / LTS)"
     required: false
@@ -56,8 +56,8 @@ runs:
           else
             echo "use_pkg_json=false" >> $GITHUB_OUTPUT
             FALLBACK="${{ inputs.pnpm-version }}"
-            if [ "$FALLBACK" = "lts" ] || [ -z "$FALLBACK" ]; then
-              FALLBACK="9"
+            if [ "$FALLBACK" = "lts" ] || [ "$FALLBACK" = "latest" ] || [ -z "$FALLBACK" ]; then
+              FALLBACK="12.15.0"
             fi
             echo "pnpm_version=$FALLBACK" >> $GITHUB_OUTPUT
             echo "Using PNPM version: $FALLBACK"

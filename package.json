@@ -1,6 +1,7 @@
 {
   "name": "cicd-toolkit",
   "version": "1.0.0",
+  "packageManager": "pnpm@12.15.0",
   "description": "Production-grade reusable GitHub Actions and Dangerfile review engine",
   "type": "module",
   "main": "dist/index.js",

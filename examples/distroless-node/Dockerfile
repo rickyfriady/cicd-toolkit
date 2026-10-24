@@ -9,7 +9,7 @@ FROM node:lts-alpine AS builder
 WORKDIR /app
 
 # Enable Corepack and pnpm LTS
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
 
 # Copy dependency manifests first for maximum Docker layer caching
 COPY package.json pnpm-lock.yaml ./
