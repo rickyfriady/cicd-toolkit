@@ -109,6 +109,11 @@ gitGraph
   - Dependency license compliance checker blocking viral copyleft licenses (GPL, AGPL) in commercial repositories.
 
 ### 3. Enterprise Automation Workflows
+- **Hardened Container Pipeline (`docker-build-secure.yml`):**
+  - Multi-arch Docker Buildx compilation (`linux/amd64`, `linux/arm64`).
+  - Automated CVE security gate with **Trivy** reporting to GitHub Security tab (SARIF).
+  - Software Bill of Materials (**SBOM**) generation (CycloneDX & SPDX standards) using Syft.
+  - Cryptographic container image and SBOM attestation signing via **Cosign / Sigstore (Keyless OIDC)**.
 - **Cross-Environment Matrix Testing:** Supports parallel verification across multiple Node.js versions (e.g. Node 20.x LTS & Node 22.x).
 - **Reusable PR Preview Deployment (`preview-deploy.yml`):** Automatically creates ephemeral preview deployments for PRs and comments the live URL directly on the PR thread.
 - **Automated Semantic Release (`release.yml`):** Inspects Conventional Commits upon merge to `master`, determines semantic bump (`patch` / `minor` / `major`), cuts a new Git Tag, and publishes GitHub Release notes.

@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Code Health: blocking of `console.log`, static inline styles, focused/skipped tests, lockfile sync check, and Knip unused dependencies / unresolved imports.
   - Test Coverage: Istanbul coverage verification with a default 80% threshold.
 - **Enterprise Automation Workflows**:
+  - `docker-build-secure.yml`: Reusable hardened multi-arch container pipeline with Trivy CVE scanning, Syft SBOM generation (CycloneDX/SPDX), and Cosign keyless signing.
+  - `examples/distroless-node/`: Enterprise reference Distroless multi-stage Dockerfile for Node.js/pnpm.
   - `release.yml`: Automated semantic release and GitHub tag/release generator from Conventional Commits.
   - `preview-deploy.yml`: Reusable PR preview deployment workflow for ephemeral frontend environments.
   - Matrix testing capability in `quality-gate.yml` across multiple Node.js versions.
