@@ -73,36 +73,56 @@ export async function checkSecurity(): Promise<void> {
 
     if (advisories.length === 0) {
       if (counts && Object.values(counts).some((n) => n > 0)) {
-        warn("🛡️ **Audit:** Vulnerability count reported but details missing. Check CI audit log.");
+        warn(
+          "🛡️ **Audit:** vulnerability counts reported but advisory details are missing. Check `pnpm audit` output."
+        );
+      } else if (auditReport.advisories || counts) {
+        markdown("🛡️ **Audit:** No known vulnerabilities in installed dependencies.");
       } else {
-        markdown("🛡️ **Audit:** No known security vulnerabilities found in dependencies.");
+        markdown("🛡️ **Audit:** No audit data available for this pipeline run.");
       }
       return;
     }
 
-    const criticalCount = counts?.critical ?? advisories.filter((a) => a.severity === "critical").length;
-    const highCount = counts?.high ?? advisories.filter((a) => a.severity === "high").length;
-    const moderateCount = counts?.moderate ?? advisories.filter((a) => a.severity === "moderate").length;
-    const lowCount = counts?.low ?? advisories.filter((a) => a.severity === "low").length;
+    const SEVERITY_ORDER: AuditAdvisory["severity"][] = ["critical", "high", "moderate", "low", "info"];
+    const SEVERITY_BADGE: { [key in AuditAdvisory["severity"]]: string } = {
+      critical: "🟣 **CRITICAL**",
+      high: "🔴 **HIGH**",
+      moderate: "🟠 MODERATE",
+      low: "🟡 LOW",
+      info: "⚪ INFO",
+    };
+
+    const countBySeverity = (severity: AuditAdvisory["severity"]): number =>
+      advisories.filter((a) => a.severity === severity).length;
+
+    const criticalCount = counts?.critical ?? countBySeverity("critical");
+    const highCount = counts?.high ?? countBySeverity("high");
+    const moderateCount = counts?.moderate ?? countBySeverity("moderate");
+    const lowCount = counts?.low ?? countBySeverity("low");
 
     if (criticalCount + highCount > 0) {
       fail(
-        `🛡️ **Security Vulnerability Blocker:** Found **${criticalCount} critical** and **${highCount} high** severity vulnerabilities. ` +
-        `These must be patched, upgraded, or overridden before merging.`
+        `🛡️ **Audit:** Found **${criticalCount}** critical and **${highCount}** high severity vulnerabilities. These must be resolved (update, patch, or documented override) before merging.`
       );
     } else if (moderateCount + lowCount > 0) {
       warn(
-        `🛡️ **Security Advisories:** Found **${moderateCount} moderate** and **${lowCount} low** severity vulnerabilities.`
+        `🛡️ **Audit:** Found **${moderateCount}** moderate and **${lowCount}** low severity vulnerabilities. Plan updates for the affected packages.`
       );
     }
 
-    let report = "## 🛡️ Dependency Vulnerability Summary\n\n";
-    report += `| Package | Severity | Vulnerable Version | Recommendation |\n`;
-    report += `| :--- | :--- | :--- | :--- |\n`;
+    const sorted = [...advisories].sort(
+      (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity)
+    );
 
-    advisories.slice(0, 15).forEach((advisory) => {
+    let report = "## 🛡️ Dependency Vulnerability Report\n\n";
+    report += `**Totals:** ${criticalCount} critical / ${highCount} high / ${moderateCount} moderate / ${lowCount} low\n\n`;
+    report += "| Package | Severity | Vulnerable | Fix | Advisory |\n";
+    report += "| :--- | :--- | :--- | :--- | :--- |\n";
+    sorted.forEach((advisory) => {
       const fix = advisory.patched_versions || advisory.recommendation || "—";
-      report += `| \`${advisory.module_name}\` | **${advisory.severity.toUpperCase()}** | \`${advisory.vulnerable_versions}\` | ${fix} |\n`;
+      const link = advisory.url ? `[${advisory.title}](${advisory.url})` : advisory.title;
+      report += `| \`${advisory.module_name}\` | ${SEVERITY_BADGE[advisory.severity]} | \`${advisory.vulnerable_versions}\` | \`${fix}\` | ${link} |\n`;
     });
 
     markdown(report);

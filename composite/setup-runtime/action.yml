@@ -6,13 +6,17 @@ inputs:
     required: false
     default: "auto"
   node-version:
-    description: "Node.js version to setup when using pnpm"
+    description: "Node.js version to setup when using pnpm (default: 'lts/*')"
     required: false
-    default: "22.x"
+    default: "lts/*"
   pnpm-version:
-    description: "Fallback PNPM version to install when package.json does not declare packageManager (default: 9)"
+    description: "Fallback PNPM version to install when package.json does not declare packageManager (default: '12.15.0')"
     required: false
-    default: "9"
+    default: "12.15.0"
+  bun-version:
+    description: "Bun version to install when using bun (default: 'latest' / LTS)"
+    required: false
+    default: "latest"
   install-deps:
     description: "Whether to execute frozen-lockfile installation"
     required: false
@@ -52,9 +56,11 @@ runs:
           else
             echo "use_pkg_json=false" >> $GITHUB_OUTPUT
             FALLBACK="${{ inputs.pnpm-version }}"
-            [ -z "$FALLBACK" ] && FALLBACK="9"
+            if [ "$FALLBACK" = "lts" ] || [ "$FALLBACK" = "latest" ] || [ -z "$FALLBACK" ]; then
+              FALLBACK="12.15.0"
+            fi
             echo "pnpm_version=$FALLBACK" >> $GITHUB_OUTPUT
-            echo "No packageManager in package.json, using version: $FALLBACK"
+            echo "Using PNPM version: $FALLBACK"
           fi
         fi
 
@@ -65,15 +71,15 @@ runs:
       with:
         run_install: false
 
-    # Setup PNPM path (from input or fallback 9 if package.json lacks packageManager)
-    - name: Setup PNPM (from input version)
+    # Setup PNPM path (from input version or LTS fallback)
+    - name: Setup PNPM (LTS / Input version)
       if: steps.detect-pm.outputs.pm == 'pnpm' && steps.detect-pm.outputs.use_pkg_json != 'true'
       uses: pnpm/action-setup@v4
       with:
         version: ${{ steps.detect-pm.outputs.pnpm_version }}
         run_install: false
 
-    - name: Setup Node.js with PNPM cache
+    - name: Setup Node.js (LTS) with PNPM cache
       if: steps.detect-pm.outputs.pm == 'pnpm'
       uses: actions/setup-node@v4
       with:
@@ -85,10 +91,12 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
-    # Setup BUN path
-    - name: Setup Bun
+    # Setup BUN path (LTS / Latest stable)
+    - name: Setup Bun (LTS)
       if: steps.detect-pm.outputs.pm == 'bun'
       uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
 
     - name: Install dependencies via Bun
       if: steps.detect-pm.outputs.pm == 'bun' && inputs.install-deps == 'true'

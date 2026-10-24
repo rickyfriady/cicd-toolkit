@@ -29,7 +29,9 @@ jobs:
         uses: ./composite/setup-runtime
         with:
           package-manager: "pnpm"
-          node-version: "22.x"
+          node-version: "lts/*"
+          pnpm-version: "12.15.0"
+          bun-version: "latest"
           install-deps: "true"
 
       - name: Verify Tool Versions
@@ -39,6 +41,14 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+      - name: Generate Quality & Security Reports
+        run: |
+          mkdir -p reports/lint reports/unit/coverage reports/knip reports/dependencies
+          pnpm run danger:lint-report || true
+          pnpm run test:coverage || true
+          pnpm run knip:report || true
+          pnpm audit --registry=https://registry.npmjs.org/ --json > reports/dependencies/audit.json || true
 
       - name: Run Danger Review Bot
         if: github.event_name == 'pull_request'

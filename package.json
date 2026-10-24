@@ -1,18 +1,22 @@
 {
   "name": "cicd-toolkit",
   "version": "1.0.0",
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@12.15.0",
   "description": "Production-grade reusable GitHub Actions and Dangerfile review engine",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "danger:ci": "danger ci",
     "danger:local": "danger pr",
+    "danger:lint-report": "eslint . --format checkstyle --output-file reports/lint/lint-results.xml || true",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "lint": "eslint .",
     "knip": "knip",
-    "test": "vitest run"
+    "knip:report": "knip --reporter json > reports/knip/knip-result.json || true",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "audit:report": "node scripts/generate-reports.ts --report --audit --outdated"
   },
   "keywords": [
     "github-actions",
@@ -29,10 +33,14 @@
     "danger-plugin-lint-report": "^1.4.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.16.0",
+    "eslint-formatter-checkstyle": "^9.0.1",
     "knip": "^5.41.0",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^2.1.8"
   }
 }
