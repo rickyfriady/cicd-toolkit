@@ -29,7 +29,9 @@ jobs:
         uses: ./composite/setup-runtime
         with:
           package-manager: "pnpm"
-          node-version: "22.x"
+          node-version: "lts/*"
+          pnpm-version: "lts"
+          bun-version: "latest"
           install-deps: "true"
 
       - name: Verify Tool Versions

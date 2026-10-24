@@ -1,15 +1,15 @@
 # ==============================================================================
-# Enterprise Distroless Multi-Stage Dockerfile (Node.js 22 + pnpm)
+# Enterprise Distroless Multi-Stage Dockerfile (Node.js Alpine LTS + pnpm LTS)
 # Optimized for minimal attack surface, zero CVEs, non-root user, and PCI-DSS
 # ==============================================================================
 
-# Stage 1: Builder
-FROM node:22-alpine AS builder
+# Stage 1: Builder (Node.js Alpine LTS)
+FROM node:lts-alpine AS builder
 
 WORKDIR /app
 
-# Enable Corepack and pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+# Enable Corepack and pnpm LTS
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy dependency manifests first for maximum Docker layer caching
 COPY package.json pnpm-lock.yaml ./
