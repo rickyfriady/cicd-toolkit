@@ -56,8 +56,8 @@ runs:
           else
             echo "use_pkg_json=false" >> $GITHUB_OUTPUT
             FALLBACK="${{ inputs.pnpm-version }}"
-            if [ "$FALLBACK" = "lts" ] || [ "$FALLBACK" = "latest" ] || [ -z "$FALLBACK" ]; then
-              FALLBACK="12.15.0"
+            if [ "$FALLBACK" = "lts" ] || [ -z "$FALLBACK" ]; then
+              FALLBACK="9"
             fi
             echo "pnpm_version=$FALLBACK" >> $GITHUB_OUTPUT
             echo "Using PNPM version: $FALLBACK"
