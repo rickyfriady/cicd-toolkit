@@ -12,12 +12,17 @@ on:
         description: "Node.js version to setup"
         required: false
         type: string
-        default: "22.x"
+        default: "lts/*"
       pnpm-version:
         description: "PNPM version to install"
         required: false
         type: string
-        default: "9"
+        default: "12.15.0"
+      bun-version:
+        description: "Bun version to install"
+        required: false
+        type: string
+        default: "latest"
       coverage-threshold:
         description: "Minimum test coverage percentage required"
         required: false
@@ -70,6 +75,7 @@ jobs:
           package-manager: ${{ inputs.package-manager }}
           node-version: ${{ matrix.node-version }}
           pnpm-version: ${{ inputs.pnpm-version }}
+          bun-version: ${{ inputs.bun-version }}
           install-deps: "true"
 
       - name: Create Reports Directory

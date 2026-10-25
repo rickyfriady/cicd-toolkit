@@ -2,8 +2,23 @@
 
 [![CI](https://github.com/rickyfriady/cicd-toolkit/actions/workflows/test-self.yml/badge.svg)](https://github.com/rickyfriady/cicd-toolkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-Alpine--LTS-339933?logo=node.js)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-12.15.0-F69220?logo=pnpm)](https://pnpm.io/)
+[![Bun](https://img.shields.io/badge/Bun-LTS--Stable-000000?logo=bun)](https://bun.sh/)
+[![Security: Trivy + Cosign](https://img.shields.io/badge/Security-Trivy%20%7C%20Cosign%20%7C%20Syft-blueviolet)](docs/container-security.md)
 
 Standardized, decacorn-grade CI/CD and pull request automated code review engine for GitHub repositories. Designed to be consumed effortlessly by both frontend (Vue 3, React, Vite) and backend (Node.js, Bun) projects.
+
+---
+
+## 📚 Documentation Index
+
+| Guide | Description |
+| :--- | :--- |
+| [**Reusable Workflows Guide**](docs/workflows.md) | Inputs, outputs, permissions, and caller examples for `quality-gate.yml`, `docker-build-secure.yml`, `preview-deploy.yml`, and `release.yml`. |
+| [**Container Security & Hardening**](docs/container-security.md) | Zero-trust Distroless container architecture, Trivy CVE scanning, Syft SBOM (CycloneDX & SPDX), and Cosign keyless signing. |
+| [**Danger Review Engine Guide**](docs/danger-review-engine.md) | Detailed architecture of Danger JS rules, Knip code health reporting, dependency audit tables, and `.dangerrc.json` reference. |
+| [**Runtimes & Package Managers**](docs/runtimes-and-package-managers.md) | Supported versions (Node Alpine LTS, pnpm 12.15.0, Bun LTS), caching mechanisms, and parallel matrix testing. |
 
 ---
 
@@ -109,6 +124,11 @@ gitGraph
   - Dependency license compliance checker blocking viral copyleft licenses (GPL, AGPL) in commercial repositories.
 
 ### 3. Enterprise Automation Workflows
+- **Hardened Container Pipeline (`docker-build-secure.yml`):**
+  - Multi-arch Docker Buildx compilation (`linux/amd64`, `linux/arm64`).
+  - Automated CVE security gate with **Trivy** reporting to GitHub Security tab (SARIF).
+  - Software Bill of Materials (**SBOM**) generation (CycloneDX & SPDX standards) using Syft.
+  - Cryptographic container image and SBOM attestation signing via **Cosign / Sigstore (Keyless OIDC)**.
 - **Cross-Environment Matrix Testing:** Supports parallel verification across multiple Node.js versions (e.g. Node 20.x LTS & Node 22.x).
 - **Reusable PR Preview Deployment (`preview-deploy.yml`):** Automatically creates ephemeral preview deployments for PRs and comments the live URL directly on the PR thread.
 - **Automated Semantic Release (`release.yml`):** Inspects Conventional Commits upon merge to `master`, determines semantic bump (`patch` / `minor` / `major`), cuts a new Git Tag, and publishes GitHub Release notes.
@@ -138,7 +158,8 @@ jobs:
     uses: rickyfriady/cicd-toolkit/.github/workflows/quality-gate.yml@v1
     with:
       package-manager: "pnpm" # 'pnpm' | 'bun' | 'auto'
-      node-version: "22.x"
+      node-version: "lts/*"
+      pnpm-version: "12.15.0"
       coverage-threshold: 80
       run-knip: true
       run-audit: true

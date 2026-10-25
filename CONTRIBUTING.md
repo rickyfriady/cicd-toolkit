@@ -52,26 +52,32 @@ All Pull Requests are evaluated by **Danger JS** and automated CI quality gates.
 ## Development & Local Testing
 
 ### Prerequisites
-- Node.js 22+
-- `pnpm` (version 9+) or `bun`
+- Node.js (Active LTS `lts/*`, e.g., 22+)
+- `pnpm` (`12.15.0`) or `bun` (`latest` / LTS)
 
 ### Commands
 
 ```bash
-# Install dependencies
-pnpm install
+# Install dependencies with frozen lockfile
+pnpm install --frozen-lockfile
 
 # Run TypeScript compilation check
 pnpm run typecheck
 
-# Run linter
+# Run linter & generate Checkstyle XML report
 pnpm run lint
+pnpm run danger:lint-report
 
-# Run dead-code detection (Knip)
+# Run unit tests with Istanbul v8 coverage
+pnpm run test
+pnpm run test:coverage
+
+# Run dead-code & unused dependency scan (Knip)
 pnpm run knip
+pnpm run knip:report
 
-# Run local Danger review
-pnpm run danger:local
+# Run local Danger review against a PR
+pnpm run danger:local https://github.com/rickyfriady/cicd-toolkit/pull/2
 ```
 
 ---
