@@ -67,7 +67,7 @@ if (fs.existsSync(coverageReportPath)) {
 // 3. Custom Enterprise Quality Gates
 schedule(async () => {
   await checkPRHygiene(config);
-  await checkSecurity();
+  await checkSecurity(config);
   await checkCodeHealth(config);
   await checkLicenseAndSecrets(config);
   await checkBundleSize(config);

@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { DangerConfig } from "../config";
 
 declare const danger: any;
 declare function fail(message: string): void;
@@ -24,7 +25,7 @@ interface AuditReport {
   };
 }
 
-export async function checkSecurity(): Promise<void> {
+export async function checkSecurity(config?: DangerConfig): Promise<void> {
   const SENSITIVE_PATTERNS = [/\.pem$/, /\.key$/, /\.p12$/, /\.pfx$/, /\.crt$/, /^\.env(\..+)?$/];
   const CRITICAL_FILES = [".npmrc", ".pnpmrc", "Dockerfile", ".github/workflows"];
 
@@ -84,6 +85,20 @@ export async function checkSecurity(): Promise<void> {
       return;
     }
 
+    const ignoredList = config?.ignoredAdvisories || [];
+
+    const isIgnored = (advisory: AuditAdvisory): boolean => {
+      return (
+        ignoredList.includes(String(advisory.id)) ||
+        ignoredList.includes(advisory.module_name) ||
+        ignoredList.some((item) => advisory.url && advisory.url.includes(item)) ||
+        ignoredList.some((item) => advisory.title && advisory.title.includes(item))
+      );
+    };
+
+    const activeAdvisories = advisories.filter((a) => !isIgnored(a));
+    const documentedAdvisories = advisories.filter((a) => isIgnored(a));
+
     const SEVERITY_ORDER: AuditAdvisory["severity"][] = ["critical", "high", "moderate", "low", "info"];
     const SEVERITY_BADGE: { [key in AuditAdvisory["severity"]]: string } = {
       critical: "🟣 **CRITICAL**",
@@ -93,22 +108,26 @@ export async function checkSecurity(): Promise<void> {
       info: "⚪ INFO",
     };
 
-    const countBySeverity = (severity: AuditAdvisory["severity"]): number =>
-      advisories.filter((a) => a.severity === severity).length;
+    const activeCriticalCount = activeAdvisories.filter((a) => a.severity === "critical").length;
+    const activeHighCount = activeAdvisories.filter((a) => a.severity === "high").length;
+    const activeModerateCount = activeAdvisories.filter((a) => a.severity === "moderate").length;
+    const activeLowCount = activeAdvisories.filter((a) => a.severity === "low").length;
 
-    const criticalCount = counts?.critical ?? countBySeverity("critical");
-    const highCount = counts?.high ?? countBySeverity("high");
-    const moderateCount = counts?.moderate ?? countBySeverity("moderate");
-    const lowCount = counts?.low ?? countBySeverity("low");
+    const totalCritical = advisories.filter((a) => a.severity === "critical").length;
+    const totalHigh = advisories.filter((a) => a.severity === "high").length;
+    const totalModerate = advisories.filter((a) => a.severity === "moderate").length;
+    const totalLow = advisories.filter((a) => a.severity === "low").length;
 
-    if (criticalCount + highCount > 0) {
+    if (activeCriticalCount + activeHighCount > 0) {
       fail(
-        `🛡️ **Audit:** Found **${criticalCount}** critical and **${highCount}** high severity vulnerabilities. These must be resolved (update, patch, or documented override) before merging.`
+        `🛡️ **Audit:** Found **${activeCriticalCount}** critical and **${activeHighCount}** high severity vulnerabilities. These must be resolved (update, patch, or documented override in \`.dangerrc.json\`) before merging.`
       );
-    } else if (moderateCount + lowCount > 0) {
+    } else if (activeModerateCount + activeLowCount > 0) {
       warn(
-        `🛡️ **Audit:** Found **${moderateCount}** moderate and **${lowCount}** low severity vulnerabilities. Plan updates for the affected packages.`
+        `🛡️ **Audit:** Found **${activeModerateCount}** moderate and **${activeLowCount}** low severity vulnerabilities. Plan updates for the affected packages.`
       );
+    } else if (documentedAdvisories.length > 0) {
+      markdown(`✅ **Audit Quality Gate Passed:** ${documentedAdvisories.length} advisory/advisories were verified as documented overrides.`);
     }
 
     const sorted = [...advisories].sort(
@@ -116,13 +135,19 @@ export async function checkSecurity(): Promise<void> {
     );
 
     let report = "## 🛡️ Dependency Vulnerability Report\n\n";
-    report += `**Totals:** ${criticalCount} critical / ${highCount} high / ${moderateCount} moderate / ${lowCount} low\n\n`;
-    report += "| Package | Severity | Vulnerable | Fix | Advisory |\n";
-    report += "| :--- | :--- | :--- | :--- | :--- |\n";
+    report += `**Totals:** ${totalCritical} critical / ${totalHigh} high / ${totalModerate} moderate / ${totalLow} low`;
+    if (documentedAdvisories.length > 0) {
+      report += ` *(including ${documentedAdvisories.length} documented override(s))*`;
+    }
+    report += "\n\n";
+    report += "| Package | Severity | Vulnerable | Fix | Advisory | Status |\n";
+    report += "| :--- | :--- | :--- | :--- | :--- | :--- |\n";
+
     sorted.forEach((advisory) => {
       const fix = advisory.patched_versions || advisory.recommendation || "—";
       const link = advisory.url ? `[${advisory.title}](${advisory.url})` : advisory.title;
-      report += `| \`${advisory.module_name}\` | ${SEVERITY_BADGE[advisory.severity]} | \`${advisory.vulnerable_versions}\` | \`${fix}\` | ${link} |\n`;
+      const status = isIgnored(advisory) ? "🛡️ Documented Override" : (advisory.severity === "critical" || advisory.severity === "high" ? "🚨 Action Required" : "⚠️ Monitor");
+      report += `| \`${advisory.module_name}\` | ${SEVERITY_BADGE[advisory.severity]} | \`${advisory.vulnerable_versions}\` | \`${fix}\` | ${link} | ${status} |\n`;
     });
 
     markdown(report);

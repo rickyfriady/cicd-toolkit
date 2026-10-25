@@ -13,8 +13,11 @@ export interface DangerConfig {
   protectedBranches: string[];
   maxAssetSizeKB: number;
   maxTotalBundleKB: number;
+  maxBundleDiffIncreaseKB: number;
   enforceLicenseCompliance: boolean;
   enforceSecretScanning: boolean;
+  auditFailOnDevDependencies: boolean;
+  ignoredAdvisories: string[];
 }
 
 export const DEFAULT_CONFIG: DangerConfig = {
@@ -29,8 +32,11 @@ export const DEFAULT_CONFIG: DangerConfig = {
   protectedBranches: ["main", "master", "staging", "development"],
   maxAssetSizeKB: 350,
   maxTotalBundleKB: 1500,
+  maxBundleDiffIncreaseKB: 50,
   enforceLicenseCompliance: true,
   enforceSecretScanning: true,
+  auditFailOnDevDependencies: false,
+  ignoredAdvisories: [],
 };
 
 export function loadConfig(): DangerConfig {

@@ -16,6 +16,7 @@
     "knip:report": "knip --reporter json > reports/knip/knip-result.json || true",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "bundle:measure": "node dist/scripts/measure-bundle.js",
     "audit:report": "node scripts/generate-reports.ts --report --audit --outdated"
   },
   "keywords": [
