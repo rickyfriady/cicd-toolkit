@@ -7,21 +7,21 @@ declare function warn(message: string): void;
 declare function fail(message: string): void;
 declare function markdown(message: string): void;
 
-export interface AssetInfo {
+interface AssetInfo {
   name: string;
   relativePath: string;
   sizeBytes: number;
   gzipBytes: number;
 }
 
-export interface BundleSnapshot {
+interface BundleSnapshot {
   timestamp: string;
   totalSizeBytes: number;
   totalGzipBytes: number;
   assets: AssetInfo[];
 }
 
-export function scanAssets(dir: string, baseDir: string): AssetInfo[] {
+function scanAssets(dir: string, baseDir: string): AssetInfo[] {
   let results: AssetInfo[] = [];
   if (!fs.existsSync(dir)) return results;
 
@@ -56,14 +56,14 @@ export function scanAssets(dir: string, baseDir: string): AssetInfo[] {
   return results;
 }
 
-export function formatBytes(bytes: number): string {
+function formatBytes(bytes: number): string {
   if (Math.abs(bytes) < 1024) {
     return `${bytes} B`;
   }
   return `${(bytes / 1024).toFixed(2)} KB`;
 }
 
-export function formatDelta(current: number, base: number): string {
+function formatDelta(current: number, base: number): string {
   const diff = current - base;
   if (diff === 0) return "— (0%)";
   const sign = diff > 0 ? "+" : "";

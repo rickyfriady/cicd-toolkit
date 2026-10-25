@@ -142,7 +142,20 @@ export async function checkCodeHealth(config: DangerConfig): Promise<void> {
   );
 
   if (packageChanged && !lockfileChanged) {
-    fail("🔒 **Lockfile Out of Sync:** `package.json` was modified but no lockfile was committed. Please update lockfile!");
+    let depsModified = true;
+    try {
+      const diff = await danger.git.diffForFile("package.json");
+      if (diff && diff.diff) {
+        const depPattern = /"(\w*dependencies|overrides|resolutions|packageManager)"/i;
+        depsModified = depPattern.test(diff.diff);
+      }
+    } catch {
+      depsModified = true;
+    }
+
+    if (depsModified) {
+      fail("🔒 **Lockfile Out of Sync:** Dependencies in `package.json` were modified but no lockfile was committed. Please update lockfile!");
+    }
   }
 
   // 2. Focused & Skipped Tests Check
