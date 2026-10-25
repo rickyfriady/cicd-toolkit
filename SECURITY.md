@@ -33,3 +33,10 @@ We will acknowledge receipt within **48 hours** and provide a patch/advisory tim
 - **Read-Only by Default:** Secret tokens are scoped strictly to necessary permissions (`pull-requests: write`, `contents: read`).
 - **No Secret Echoing:** Workflows and scripts avoid echoing environment variables containing tokens.
 - **Dependency Auditing:** Dependencies are scanned on every run for CVEs.
+- **Supply-Chain Integrity:**
+  - Automated generation of CycloneDX & SPDX Software Bill of Materials (SBOM) via Anchore Syft.
+  - Cryptographic container image signing using Cosign (Keyless Sigstore OIDC).
+  - Pre-push vulnerability gating via Aqua Security Trivy (SARIF integration).
+  - Production Distroless runtimes eliminating shells, package managers, and root access.
+
+For more information, see the [Container Security & Hardening Guide](docs/container-security.md).
