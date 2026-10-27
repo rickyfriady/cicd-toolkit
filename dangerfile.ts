@@ -8,6 +8,7 @@ import { checkSecurity } from "./danger/rules/security";
 import { checkCodeHealth } from "./danger/rules/code-health";
 import { checkBundleSize } from "./danger/rules/bundle-size";
 import { checkLicenseAndSecrets } from "./danger/rules/license-compliance";
+import { checkSAST } from "./danger/rules/sast";
 
 declare function schedule(promiseOrAsyncFunction: any): void;
 declare function markdown(message: string): void;
@@ -71,6 +72,7 @@ schedule(async () => {
   await checkCodeHealth(config);
   await checkLicenseAndSecrets(config);
   await checkBundleSize(config);
+  await checkSAST(config);
 
   // Custom Branded Footer Signature
   markdown(`

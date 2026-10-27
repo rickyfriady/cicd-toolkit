@@ -16,8 +16,11 @@ Standardized, decacorn-grade CI/CD and pull request automated code review engine
 | Guide | Description |
 | :--- | :--- |
 | [**Reusable Workflows Guide**](docs/workflows.md) | Inputs, outputs, permissions, and caller examples for `quality-gate.yml`, `docker-build-secure.yml`, `preview-deploy.yml`, and `release.yml`. |
+| [**Automated Semantic Release**](docs/semantic-release.md) | Conventional Commits bump parsing (`patch`, `minor`, `major`), automated `CHANGELOG.md` generation, and GitHub Releases with assets. |
+| [**Ephemeral PR Preview Deployments**](docs/preview-deployments.md) | Dynamic PR preview dashboard, live Istanbul HTML coverage report browsing, and automatic teardown on PR closure. |
+| [**SAST & Hardcoded Secret Scanning**](docs/sast-and-secret-scanning.md) | Semgrep OSS SARIF integration, Gitleaks credential scanning, and Danger review blocker rules. |
 | [**Container Security & Hardening**](docs/container-security.md) | Zero-trust Distroless container architecture, Trivy CVE scanning, Syft SBOM (CycloneDX & SPDX), and Cosign keyless signing. |
-| [**Danger Review Engine Guide**](docs/danger-review-engine.md) | Detailed architecture of Danger JS rules, Knip code health reporting, dependency audit tables, and `.dangerrc.json` reference. |
+| [**Danger Review Engine Guide**](docs/danger-review-engine.md) | Detailed architecture of Danger JS rules, Knip code health reporting, bundle size diffs, and `.dangerrc.json` reference. |
 | [**Runtimes & Package Managers**](docs/runtimes-and-package-managers.md) | Supported versions (Node Alpine LTS, pnpm 12.15.0, Bun LTS), caching mechanisms, and parallel matrix testing. |
 
 ---

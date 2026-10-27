@@ -17,6 +17,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "bundle:measure": "node dist/scripts/measure-bundle.js",
+    "release": "node dist/scripts/semantic-release.js",
+    "release:dry": "node dist/scripts/semantic-release.js --dry-run",
     "audit:report": "node scripts/generate-reports.ts --report --audit --outdated"
   },
   "keywords": [

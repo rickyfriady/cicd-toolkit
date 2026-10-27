@@ -16,6 +16,8 @@ export interface DangerConfig {
   maxBundleDiffIncreaseKB: number;
   enforceLicenseCompliance: boolean;
   enforceSecretScanning: boolean;
+  enforceSast: boolean;
+  sastFailOnSeverity: "error" | "warning";
   auditFailOnDevDependencies: boolean;
   ignoredAdvisories: string[];
 }
@@ -35,6 +37,8 @@ export const DEFAULT_CONFIG: DangerConfig = {
   maxBundleDiffIncreaseKB: 50,
   enforceLicenseCompliance: true,
   enforceSecretScanning: true,
+  enforceSast: true,
+  sastFailOnSeverity: "error",
   auditFailOnDevDependencies: false,
   ignoredAdvisories: [],
 };

@@ -1,0 +1,42 @@
+name: "Teardown PR Preview Deployment"
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  teardown:
+    name: "Teardown Ephemeral Preview"
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+      pull-requests: write
+    steps:
+      - name: Deactivate & Delete Deployment Environment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const envName = `pr-${prNumber}-preview`;
+
+            console.log(`Deactivating ephemeral deployment for ${envName}...`);
+            try {
+              const deployments = await github.rest.repos.listDeployments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                environment: envName
+              });
+
+              for (const d of deployments.data) {
+                await github.rest.repos.createDeploymentStatus({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  deployment_id: d.id,
+                  state: 'inactive',
+                  description: `PR #${prNumber} closed. Environment torn down.`
+                });
+              }
+              console.log(`Successfully marked deployment for ${envName} as inactive.`);
+            } catch (err) {
+              console.log('Teardown skipped or limited permission:', err.message);
+            }
