@@ -13,6 +13,15 @@ import { checkSAST } from "./danger/rules/sast";
 declare function schedule(promiseOrAsyncFunction: any): void;
 declare function markdown(message: string): void;
 
+// Intercept fail to log explicitly to CI console
+const origFail = (global as any).fail;
+if (typeof origFail === "function") {
+  (global as any).fail = (msg: string) => {
+    console.error("🚨 [DANGER FAIL INTERCEPTED]:", msg);
+    return origFail(msg);
+  };
+}
+
 const config = loadConfig();
 
 // Option A: Custom Branded Header Banner

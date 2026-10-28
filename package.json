@@ -6,7 +6,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "danger:ci": "danger ci",
+    "danger:ci": "danger ci --verbose",
     "danger:local": "danger pr",
     "danger:lint-report": "eslint . --format checkstyle --output-file reports/lint/lint-results.xml || true",
     "typecheck": "tsc --noEmit",
