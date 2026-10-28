@@ -5,7 +5,6 @@ import { DangerConfig } from "../config";
 declare const danger: any;
 declare function fail(message: string): void;
 declare function warn(message: string): void;
-declare function markdown(message: string): void;
 
 const FORBIDDEN_LICENSES = [/GPL/i, /AGPL/i, /SSPL/i, /EUPL/i, /CPAL/i];
 

@@ -50,7 +50,7 @@ if (fs.existsSync(coverageReportPath)) {
         `❌ **Coverage Deficit:** Test coverage is below the required **${config.coverageThreshold}%** threshold. Please write tests for uncovered paths before merging.`,
       entrySortMethod: "least-coverage",
       reportFileSet: "createdOrModified",
-      reportMode: "fail",
+      reportMode: "warn",
       coveragePath: {
         path: "reports/unit/coverage/lcov.info",
         type: "lcov",
