@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2026-10-31
+
+### 🐛 Bug Fixes
+- **release**: add MIT license file and make release packaging resilient ([d27ca1e](https://github.com/rickyfriady/cicd-toolkit/commit/d27ca1ee75a570c2cc88d6abd7baff8489a02bd9)) - @Ricki Friadi
+
 ## [1.1.0] - 2026-10-31
 
 ### ✨ Features & Enhancements
