@@ -1,0 +1,157 @@
+name: "E2E Cross-Framework Consumer Verification"
+
+on:
+  push:
+    branches: [main, master, "feature/**"]
+    paths:
+      - ".github/workflows/**"
+      - "composite/**"
+      - "examples/**"
+  pull_request:
+    branches: [main, master, "feature/**"]
+    paths:
+      - ".github/workflows/**"
+      - "composite/**"
+      - "examples/**"
+  schedule:
+    - cron: "0 2 * * *" # Nightly at 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      test-containers:
+        description: "Run container build verification"
+        type: boolean
+        default: true
+      test-frontend:
+        description: "Run frontend framework verification"
+        type: boolean
+        default: true
+
+concurrency:
+  group: e2e-matrix-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-frontend:
+    name: "Frontend E2E (${{ matrix.framework }} | ${{ matrix.package-manager }} | Node ${{ matrix.node-version }})"
+    if: github.event_name != 'workflow_dispatch' || inputs.test-frontend == true
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: [vue3-vite]
+        package-manager: [pnpm, bun]
+        node-version: ["20.x", "22.x"]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Runtime via Composite Action
+        uses: ./composite/setup-runtime
+        with:
+          package-manager: ${{ matrix.package-manager }}
+          node-version: ${{ matrix.node-version }}
+          pnpm-version: "12.15.0"
+          bun-version: "latest"
+          install-deps: "false"
+
+      - name: Setup npm registry configuration
+        run: |
+          echo "registry=https://registry.npmjs.org/" > .npmrc
+          echo "registry=https://registry.npmjs.org/" > examples/${{ matrix.framework }}/.npmrc
+
+      - name: Install Dependencies
+        working-directory: examples/${{ matrix.framework }}
+        run: |
+          if [ "${{ matrix.package-manager }}" = "bun" ]; then
+            bun install
+          else
+            pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Build Application
+        working-directory: examples/${{ matrix.framework }}
+        run: |
+          if [ "${{ matrix.package-manager }}" = "bun" ]; then
+            bun run build
+          else
+            pnpm run build
+          fi
+
+      - name: Assert Build Artifacts Exist
+        run: |
+          test -f examples/${{ matrix.framework }}/dist/index.html || { echo "Missing index.html"; exit 1; }
+          echo "✅ Application build verified successfully for ${{ matrix.framework }} with ${{ matrix.package-manager }}"
+
+  e2e-containers:
+    name: "Container E2E (${{ matrix.target.name }})"
+    if: github.event_name != 'workflow_dispatch' || inputs.test-containers == true
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: distroless-node
+            dockerfile: examples/distroless-node/Dockerfile
+            context: examples/distroless-node
+          - name: distroless-bun
+            dockerfile: examples/distroless-bun/Dockerfile
+            context: examples/distroless-bun
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Validate Container
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.target.context }}
+          file: ${{ matrix.target.dockerfile }}
+          push: false
+          load: true
+          tags: e2e-test/${{ matrix.target.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify Container Image
+        run: |
+          docker images e2e-test/${{ matrix.target.name }}
+          echo "✅ Container build and multi-stage packaging verified for ${{ matrix.target.name }}"
+
+  e2e-summary:
+    name: "E2E Aggregated Matrix Summary"
+    needs: [e2e-frontend, e2e-containers]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collate Matrix Results
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          # 🧪 E2E Cross-Framework Consumer Verification Summary
+
+          | Test Suite | Result | Status |
+          | :--- | :--- | :--- |
+          | **Frontend Matrix (Vue 3 / Vite)** | ${{ needs.e2e-frontend.result }} | ${{ needs.e2e-frontend.result == 'success' && '✅ PASSED' || '❌ FAILED' }} |
+          | **Container Matrix (Distroless Node & Bun)** | ${{ needs.e2e-containers.result }} | ${{ needs.e2e-containers.result == 'success' && '✅ PASSED' || '❌ FAILED' }} |
+
+          ### Permutations Tested
+          - **Frontend Framework**: Vue 3 + Vite 6
+          - **Package Managers**: `pnpm@12`, `bun`
+          - **Runtimes**: Node.js `20.x`, `22.x`, Bun `latest`
+          - **Container Environments**: `gcr.io/distroless/nodejs22-debian12:nonroot`, `oven/bun:alpine`
+          EOF
+
+      - name: Check Overall Status
+        run: |
+          if [ "${{ needs.e2e-frontend.result }}" != "success" ] && [ "${{ needs.e2e-frontend.result }}" != "skipped" ]; then
+            echo "❌ Frontend E2E tests failed"
+            exit 1
+          fi
+          if [ "${{ needs.e2e-containers.result }}" != "success" ] && [ "${{ needs.e2e-containers.result }}" != "skipped" ]; then
+            echo "❌ Container E2E tests failed"
+            exit 1
+          fi
+          echo "🎉 All E2E matrix verification suites passed successfully!"
