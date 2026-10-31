@@ -1,0 +1,15 @@
+{
+  "name": "example-distroless-node",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.3"
+  }
+}
