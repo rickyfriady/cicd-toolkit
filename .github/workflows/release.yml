@@ -82,7 +82,7 @@ jobs:
       - name: Package Release Assets
         if: steps.release.outputs.has_release == 'true' && inputs.dry-run != true
         run: |
-          tar -czf "cicd-toolkit-${{ steps.release.outputs.tag }}.tar.gz" dist/ package.json README.md LICENSE
+          tar -czf "cicd-toolkit-${{ steps.release.outputs.tag }}.tar.gz" dist package.json README.md LICENSE
 
       - name: Publish GitHub Release
         if: steps.release.outputs.has_release == 'true' && inputs.dry-run != true
@@ -100,26 +100,40 @@ jobs:
               body = fs.readFileSync('RELEASE_NOTES.tmp.md', 'utf-8');
             }
 
-            console.log(`Creating GitHub Release for ${tag}...`);
-            const release = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tag,
-              name: `Release ${tag}`,
-              body: body,
-              draft: false,
-              prerelease: false
-            });
-
-            const assetFile = `cicd-toolkit-${tag}.tar.gz`;
-            if (fs.existsSync(assetFile)) {
-              console.log(`Uploading release asset ${assetFile}...`);
-              const assetData = fs.readFileSync(assetFile);
-              await github.rest.repos.uploadReleaseAsset({
+            console.log(`Creating or updating GitHub Release for ${tag}...`);
+            let release;
+            try {
+              release = await github.rest.repos.createRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                release_id: release.data.id,
-                name: assetFile,
-                data: assetData
+                tag_name: tag,
+                name: `Release ${tag}`,
+                body: body,
+                draft: false,
+                prerelease: false
               });
+            } catch (err) {
+              console.log(`Release creation note: ${err.message}. Fetching existing release...`);
+              release = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tag
+              });
+            }
+
+            const assetFile = `cicd-toolkit-${tag}.tar.gz`;
+            if (fs.existsSync(assetFile) && release?.data?.id) {
+              console.log(`Uploading release asset ${assetFile}...`);
+              const assetData = fs.readFileSync(assetFile);
+              try {
+                await github.rest.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.data.id,
+                  name: assetFile,
+                  data: assetData
+                });
+              } catch (err) {
+                console.log(`Asset upload notice: ${err.message}`);
+              }
             }
