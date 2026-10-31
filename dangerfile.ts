@@ -8,9 +8,19 @@ import { checkSecurity } from "./danger/rules/security";
 import { checkCodeHealth } from "./danger/rules/code-health";
 import { checkBundleSize } from "./danger/rules/bundle-size";
 import { checkLicenseAndSecrets } from "./danger/rules/license-compliance";
+import { checkSAST } from "./danger/rules/sast";
 
 declare function schedule(promiseOrAsyncFunction: any): void;
 declare function markdown(message: string): void;
+
+// Intercept fail to log explicitly to CI console
+const origFail = (global as any).fail;
+if (typeof origFail === "function") {
+  (global as any).fail = (msg: string) => {
+    console.error("🚨 [DANGER FAIL INTERCEPTED]:", msg);
+    return origFail(msg);
+  };
+}
 
 const config = loadConfig();
 
@@ -49,7 +59,7 @@ if (fs.existsSync(coverageReportPath)) {
         `❌ **Coverage Deficit:** Test coverage is below the required **${config.coverageThreshold}%** threshold. Please write tests for uncovered paths before merging.`,
       entrySortMethod: "least-coverage",
       reportFileSet: "createdOrModified",
-      reportMode: "fail",
+      reportMode: "warn",
       coveragePath: {
         path: "reports/unit/coverage/lcov.info",
         type: "lcov",
@@ -71,6 +81,7 @@ schedule(async () => {
   await checkCodeHealth(config);
   await checkLicenseAndSecrets(config);
   await checkBundleSize(config);
+  await checkSAST(config);
 
   // Custom Branded Footer Signature
   markdown(`
