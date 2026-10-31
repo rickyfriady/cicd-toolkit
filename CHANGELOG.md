@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.0] - 2026-10-31
+
+### ✨ Features & Enhancements
+- **ci**: implement automated semantic release, pr preview deployments, and deep sast scanning ([71999f8](https://github.com/rickyfriady/cicd-toolkit/commit/71999f80bcc6f853951769952f61c7426552ece4)) - @Ricki Friadi
+- implement automated bundle size diff and audit vulnerability override remediation ([71ec8db](https://github.com/rickyfriady/cicd-toolkit/commit/71ec8db97a2a9753772b40d857d370dfc706bee4)) - @Ricki Friadi
+
+### 🐛 Bug Fixes
+- **danger**: configure istanbul coverage reportMode to warn and cleanup unused declaration ([37eec42](https://github.com/rickyfriady/cicd-toolkit/commit/37eec42823a8d679661a055ef8e63937615c8a84)) - @Ricki Friadi
+- **knip**: ignore workflow-only formatter dependency in knip config ([8ac5750](https://github.com/rickyfriady/cicd-toolkit/commit/8ac575004bd49f8088d55b54cc85c3af2c840219)) - @Ricki Friadi
+- **danger**: refine lockfile diff check for package scripts and remove unused exports ([85b0c63](https://github.com/rickyfriady/cicd-toolkit/commit/85b0c63fd45a1cec56267e9890757a18d4f926f6)) - @Ricki Friadi
+
+### 📝 Documentation
+- expand comprehensive documentation suite for workflows, container security, danger engine, and runtimes ([ad1df19](https://github.com/rickyfriady/cicd-toolkit/commit/ad1df197394a6e86fa081e1ef95328a8840f1572)) - @Ricki Friadi
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
