@@ -1,0 +1,96 @@
+name: "Publish Package to Registries"
+
+on:
+  workflow_call:
+    inputs:
+      dry-run:
+        description: "Run in dry-run mode without pushing to registries"
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      NPM_TOKEN:
+        description: "NPM Access Token for publishing to public registry (optional)"
+        required: false
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Run in dry-run mode without pushing to registries"
+        required: false
+        type: boolean
+        default: false
+      target-registry:
+        description: "Target registry to publish to"
+        required: false
+        type: choice
+        options:
+          - "both"
+          - "github-packages"
+          - "npm-public"
+        default: "both"
+
+concurrency:
+  group: publish-package-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: "Build & Publish Package"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Runtime via Composite Action
+        uses: ./composite/setup-runtime
+        with:
+          package-manager: "pnpm"
+          node-version: "lts/*"
+          pnpm-version: "12.15.0"
+          install-deps: "true"
+
+      - name: Build TypeScript Production Assets
+        run: pnpm run build
+
+      - name: Pre-Publish Validation Gate
+        run: node dist/scripts/publish-check.js
+
+      # 1. Publish to GitHub Packages (npm.pkg.github.com)
+      - name: Publish to GitHub Packages Registry
+        if: inputs.target-registry != 'npm-public'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🚀 Publishing @rickyfriady/cicd-toolkit to GitHub Packages..."
+          echo "@rickyfriady:registry=https://npm.pkg.github.com/" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+          
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            echo "🧪 [DRY RUN] pnpm publish --dry-run --no-git-checks --registry=https://npm.pkg.github.com/"
+            pnpm publish --dry-run --no-git-checks --registry=https://npm.pkg.github.com/
+          else
+            pnpm publish --no-git-checks --registry=https://npm.pkg.github.com/ || echo "⚠️ Notice: Version may already exist on GitHub Packages"
+          fi
+
+      # 2. Publish to Public NPM Registry (registry.npmjs.org) with SLSA Provenance
+      - name: Publish to Public NPM Registry
+        if: inputs.target-registry != 'github-packages'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "🌐 Publishing @rickyfriady/cicd-toolkit to Public NPM with SLSA Provenance..."
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+            if [ "${{ inputs.dry-run }}" = "true" ]; then
+              echo "🧪 [DRY RUN] pnpm publish --dry-run --no-git-checks --access public --registry=https://registry.npmjs.org/"
+              pnpm publish --dry-run --no-git-checks --access public --registry=https://registry.npmjs.org/
+            else
+              pnpm publish --no-git-checks --provenance --access public --registry=https://registry.npmjs.org/ || echo "⚠️ Notice: Version may already exist on NPM"
+            fi
+          else
+            echo "ℹ️ Notice: NPM_TOKEN secret not configured. Skipping public npmjs.org publication."
+          fi

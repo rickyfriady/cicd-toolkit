@@ -33,6 +33,10 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
+    outputs:
+      has_release: ${{ steps.release.outputs.has_release }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -137,3 +141,17 @@ jobs:
                 console.log(`Asset upload notice: ${err.message}`);
               }
             }
+
+  publish-package:
+    name: "Publish Package to Registries"
+    needs: [release]
+    if: needs.release.outputs.has_release == 'true' && inputs.dry-run != true
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/package-publish.yml
+    with:
+      dry-run: false
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
