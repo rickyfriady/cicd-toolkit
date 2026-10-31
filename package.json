@@ -1,10 +1,30 @@
 {
-  "name": "cicd-toolkit",
+  "name": "@rickyfriady/cicd-toolkit",
   "version": "1.1.1",
   "packageManager": "pnpm@12.15.0",
   "description": "Production-grade reusable GitHub Actions and Dangerfile review engine",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "danger",
+    "scripts",
+    "composite",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rickyfriady/cicd-toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rickyfriady/cicd-toolkit/issues"
+  },
+  "homepage": "https://github.com/rickyfriady/cicd-toolkit#readme",
   "scripts": {
     "danger:ci": "danger ci --verbose",
     "danger:local": "danger pr",
@@ -19,6 +39,8 @@
     "bundle:measure": "node dist/scripts/measure-bundle.js",
     "release": "node dist/scripts/semantic-release.js",
     "release:dry": "node dist/scripts/semantic-release.js --dry-run",
+    "publish:check": "node dist/scripts/publish-check.js",
+    "prepublishOnly": "tsc && node dist/scripts/publish-check.js",
     "audit:report": "node scripts/generate-reports.ts --report --audit --outdated"
   },
   "keywords": [
