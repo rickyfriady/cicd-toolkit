@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] - 2026-10-31
+
+### ✨ Features & Enhancements
+- **publish**: implement automated dual-registry package publishing engine ([df258de](https://github.com/rickyfriady/cicd-toolkit/commit/df258de3457feb2e84a81d32d17cc3af62d52d2c)) - @Ricki Friadi
+
+### 📝 Documentation
+- add comprehensive project summary and update documentation index ([65e0b4a](https://github.com/rickyfriady/cicd-toolkit/commit/65e0b4a22595149319529d5f0323882f3f219b70)) - @Ricki Friadi
+
 ## [1.1.1] - 2026-10-31
 
 ### 🐛 Bug Fixes
