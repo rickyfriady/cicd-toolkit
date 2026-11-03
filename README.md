@@ -17,6 +17,7 @@ Standardized, decacorn-grade CI/CD and pull request automated code review engine
 | :--- | :--- |
 | [**Project Executive Summary**](docs/project-summary.md) | High-level executive overview, architecture topology, OpenSpec sync mapping, and client quick-start. |
 | [**Package Registry Publishing**](docs/package-registry-publishing.md) | Dual-registry distribution (`@rickyfriady/cicd-toolkit`), GitHub Packages `.npmrc` setup, and SLSA provenance attestation. |
+| [**E2E Cross-Framework Consumer Verification**](docs/e2e-verification.md) | Multi-framework matrix testing (`vue3-vite`, `distroless-node`, `distroless-bun`), runtime permutations, and aggregated step summary. |
 | [**Reusable Workflows Guide**](docs/workflows.md) | Inputs, outputs, permissions, and caller examples for `quality-gate.yml`, `docker-build-secure.yml`, `preview-deploy.yml`, and `release.yml`. |
 | [**Automated Semantic Release**](docs/semantic-release.md) | Conventional Commits bump parsing (`patch`, `minor`, `major`), automated `CHANGELOG.md` generation, and GitHub Releases with assets. |
 | [**Ephemeral PR Preview Deployments**](docs/preview-deployments.md) | Dynamic PR preview dashboard, live Istanbul HTML coverage report browsing, and automatic teardown on PR closure. |

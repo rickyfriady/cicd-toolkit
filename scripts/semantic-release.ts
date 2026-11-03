@@ -190,23 +190,15 @@ export function computeNextRelease(options: { dryRun?: boolean; forceBump?: "pat
 
   // Write or prepend to CHANGELOG.md
   const changelogPath = path.join(process.cwd(), "CHANGELOG.md");
-  let existingContent = "";
-  if (fs.existsSync(changelogPath)) {
-    existingContent = fs.readFileSync(changelogPath, "utf-8");
-  } else {
-    existingContent = "# Changelog\n\nAll notable changes to this project are documented in this file.\n\n";
-  }
+  const existingContent = fs.existsSync(changelogPath)
+    ? fs.readFileSync(changelogPath, "utf-8")
+    : "# Changelog\n\nAll notable changes to this project are documented in this file.\n\n";
 
   // Prepend after header
   const headerMatch = existingContent.match(/^# Changelog[^\n]*\n+/);
-  let updatedChangelog = "";
-  if (headerMatch) {
-    const header = headerMatch[0];
-    const rest = existingContent.slice(header.length);
-    updatedChangelog = `${header}${releaseNotes}\n${rest}`;
-  } else {
-    updatedChangelog = `# Changelog\n\n${releaseNotes}\n${existingContent}`;
-  }
+  const updatedChangelog = headerMatch
+    ? `${headerMatch[0]}${releaseNotes}\n${existingContent.slice(headerMatch[0].length)}`
+    : `# Changelog\n\n${releaseNotes}\n${existingContent}`;
 
   fs.writeFileSync(changelogPath, updatedChangelog, "utf-8");
   console.log(`✅ Updated ${changelogPath}`);
