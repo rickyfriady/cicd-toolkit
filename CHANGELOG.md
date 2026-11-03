@@ -10,6 +10,19 @@
 - **e2e**: resolve distroless-node pnpm lockfile and sanitize linting checks ([52ddbd4](https://github.com/rickyfriady/cicd-toolkit/commit/52ddbd431579010868b59b4e52c37c13be00ddea)) - @Ricki Friadi
 
 ### 📝 Documentation
+- archive e2e-matrix-verification and update main specs ([f34f5c5](https://github.com/rickyfriady/cicd-toolkit/commit/f34f5c54a4cf7b9b0f0d415ba7fd6e79505c6586)) - @Ricki Friadi
+- archive publish-package-registry and update main specs ([806d274](https://github.com/rickyfriady/cicd-toolkit/commit/806d274ac1a611cdd6d31a6faf3d46e6d9af2ddb)) - @Ricki Friadi
+
+## [1.3.0] - 2026-11-03
+
+### ✨ Features & Enhancements
+- **e2e**: implement cross-framework consumer verification matrix engine ([e08622c](https://github.com/rickyfriady/cicd-toolkit/commit/e08622c9f202f8d3f519725861b6e857cb8e1679)) - @Ricki Friadi
+
+### 🐛 Bug Fixes
+- **docker**: install pnpm via npm in distroless-node alpine builder ([bbb829d](https://github.com/rickyfriady/cicd-toolkit/commit/bbb829d9aa825edec024e97a2e74bbbb6bb1ec49)) - @Ricki Friadi
+- **e2e**: resolve distroless-node pnpm lockfile and sanitize linting checks ([52ddbd4](https://github.com/rickyfriady/cicd-toolkit/commit/52ddbd431579010868b59b4e52c37c13be00ddea)) - @Ricki Friadi
+
+### 📝 Documentation
 - archive publish-package-registry and update main specs ([806d274](https://github.com/rickyfriady/cicd-toolkit/commit/806d274ac1a611cdd6d31a6faf3d46e6d9af2ddb)) - @Ricki Friadi
 
 ## [1.2.0] - 2026-10-31
