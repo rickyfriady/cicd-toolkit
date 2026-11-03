@@ -44,11 +44,12 @@ jobs:
 
       - name: Generate Quality & Security Reports
         run: |
-          mkdir -p reports/lint reports/unit/coverage reports/knip reports/dependencies reports/bundle reports/sast reports/security reports/preview-site
+          mkdir -p reports/lint reports/unit/coverage reports/knip reports/dependencies reports/bundle reports/sast reports/security reports/preview-site reports/telemetry
           pnpm run build || true
           pnpm run danger:lint-report || true
           pnpm run test:coverage || true
           pnpm run knip:report || true
+          pnpm run telemetry:measure || true
           pnpm audit --registry=https://registry.npmjs.org/ --json > reports/dependencies/audit.json || true
           echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Semgrep OSS"}},"results":[]}]}' > reports/sast/semgrep.sarif
           node dist/scripts/generate-preview.js || true
