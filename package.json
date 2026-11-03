@@ -41,6 +41,7 @@
     "release:dry": "node dist/scripts/semantic-release.js --dry-run",
     "publish:check": "node dist/scripts/publish-check.js",
     "prepublishOnly": "tsc && node dist/scripts/publish-check.js",
+    "telemetry:measure": "node dist/scripts/measure-pipeline.js",
     "audit:report": "node scripts/generate-reports.ts --report --audit --outdated"
   },
   "keywords": [

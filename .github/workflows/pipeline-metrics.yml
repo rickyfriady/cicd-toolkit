@@ -1,0 +1,71 @@
+name: "DORA Metrics & Pipeline Telemetry"
+
+on:
+  workflow_call:
+    inputs:
+      publish-summary:
+        description: "Append DORA scorecard to GitHub Step Summary"
+        type: boolean
+        default: true
+    outputs:
+      overall-tier:
+        description: "Overall DORA performance tier (Elite, High, Medium, Low)"
+        value: ${{ jobs.calculate-telemetry.outputs.overall-tier }}
+  workflow_dispatch:
+    inputs:
+      publish-summary:
+        description: "Append DORA scorecard to GitHub Step Summary"
+        type: boolean
+        default: true
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+
+concurrency:
+  group: dora-telemetry-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calculate-telemetry:
+    name: "360° DORA Metrics Calculation"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      overall-tier: ${{ steps.dora.outputs.overall-tier }}
+
+    steps:
+      - name: Checkout Code with Complete Git History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Runtime via Composite Action
+        uses: ./composite/setup-runtime
+        with:
+          package-manager: "pnpm"
+          node-version: "22.x"
+          pnpm-version: "12.15.0"
+          install-deps: "true"
+
+      - name: Build TypeScript Toolkit
+        run: pnpm run build
+
+      - name: Compute DORA Telemetry & Generate Step Summary
+        id: dora
+        env:
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+        run: |
+          mkdir -p reports/telemetry
+          node dist/scripts/measure-pipeline.js --step-summary
+
+          OVERALL_TIER=$(node --input-type=module -e 'import fs from "node:fs"; const r = JSON.parse(fs.readFileSync("./reports/telemetry/dora-metrics.json", "utf-8")); console.log(r.overallTier);')
+          echo "overall-tier=$OVERALL_TIER" >> $GITHUB_OUTPUT
+          echo "✅ DORA Evaluation Complete: Tier=$OVERALL_TIER"
+
+      - name: Upload DORA Telemetry Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dora-telemetry-report
+          path: reports/telemetry/dora-metrics.json
+          retention-days: 30
