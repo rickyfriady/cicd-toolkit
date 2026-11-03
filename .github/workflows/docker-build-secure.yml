@@ -1,0 +1,197 @@
+name: "Hardened Container Build, Security Scan & SBOM"
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        description: "Full image name including registry (e.g. ghcr.io/rickyfriady/my-app)"
+        required: true
+        type: string
+      dockerfile:
+        description: "Path to Dockerfile"
+        required: false
+        type: string
+        default: "Dockerfile"
+      context:
+        description: "Build context directory"
+        required: false
+        type: string
+        default: "."
+      build-args:
+        description: "List of build-time variables"
+        required: false
+        type: string
+        default: ""
+      target:
+        description: "Target build stage"
+        required: false
+        type: string
+        default: ""
+      platforms:
+        description: "Target platforms for buildx (comma-separated)"
+        required: false
+        type: string
+        default: "linux/amd64,linux/arm64"
+      push:
+        description: "Whether to push image to registry"
+        required: false
+        type: boolean
+        default: true
+      scan-severity:
+        description: "Trivy CVE scan severity threshold to report (e.g. CRITICAL,HIGH)"
+        required: false
+        type: string
+        default: "CRITICAL,HIGH"
+      fail-on-cve:
+        description: "Whether to fail workflow if vulnerabilities exceeding threshold are detected"
+        required: false
+        type: boolean
+        default: true
+      generate-sbom:
+        description: "Whether to generate and attest CycloneDX / SPDX SBOM"
+        required: false
+        type: boolean
+        default: true
+      sign-image:
+        description: "Whether to sign image and attestations with Cosign (Keyless Sigstore)"
+        required: false
+        type: boolean
+        default: true
+      registry:
+        description: "Container registry server"
+        required: false
+        type: string
+        default: "ghcr.io"
+    outputs:
+      image-digest:
+        description: "Image digest produced by buildx"
+        value: ${{ jobs.build-and-secure.outputs.digest }}
+      image-tags:
+        description: "Tags assigned to the image"
+        value: ${{ jobs.build-and-secure.outputs.tags }}
+
+jobs:
+  build-and-secure:
+    name: "Hardened Container Pipeline"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+      id-token: write # Mandatory for Cosign keyless OIDC signing
+    outputs:
+      digest: ${{ steps.build-push.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU (Multi-Arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: inputs.push == true
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker Metadata (Tags & Labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.image-name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+
+      # Stage 1: Build local image for Vulnerability Scanning
+      - name: Build Local Image for CVE Scan
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          target: ${{ inputs.target }}
+          build-args: ${{ inputs.build-args }}
+          load: true
+          tags: ${{ inputs.image-name }}:security-scan-local
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Stage 2: Security Scan with Trivy (PCI-DSS & SOC2 Requirement)
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ inputs.image-name }}:security-scan-local
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: ${{ inputs.scan-severity }}
+          exit-code: ${{ inputs.fail-on-cve && '1' || '0' }}
+        continue-on-error: ${{ !inputs.fail-on-cve }}
+
+      - name: Upload Trivy Security Results to GitHub Security Tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results.sarif"
+        continue-on-error: true
+
+      # Stage 3: Multi-Arch Build & Push to Registry
+      - name: Build & Push Multi-Arch Container Image
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          target: ${{ inputs.target }}
+          build-args: ${{ inputs.build-args }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+      # Stage 4: Generate SBOM (Software Bill of Materials)
+      - name: Generate CycloneDX SBOM (Syft)
+        if: inputs.generate-sbom == true && inputs.push == true
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ inputs.image-name }}@${{ steps.build-push.outputs.digest }}
+          format: cyclonedx-json
+          output-file: "sbom.cdx.json"
+
+      - name: Upload SBOM Artifact
+        if: inputs.generate-sbom == true && inputs.push == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-sbom-${{ github.sha }}
+          path: "sbom.cdx.json"
+          retention-days: 90
+
+      # Stage 5: Sign Image & Attestation with Cosign (Keyless Sigstore)
+      - name: Install Cosign
+        if: inputs.sign-image == true && inputs.push == true
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign Image & Attest SBOM (Keyless OIDC)
+        if: inputs.sign-image == true && inputs.push == true
+        env:
+          COSIGN_YES: "true"
+        run: |
+          IMAGE_URI="${{ inputs.image-name }}@${{ steps.build-push.outputs.digest }}"
+          echo "Signing container image: $IMAGE_URI"
+          cosign sign --yes "$IMAGE_URI"
+
+          if [ -f "sbom.cdx.json" ]; then
+            echo "Attesting SBOM to container registry..."
+            cosign attest --yes --type cyclonedx --predicate sbom.cdx.json "$IMAGE_URI"
+          fi

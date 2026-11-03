@@ -1,0 +1,153 @@
+name: "Reusable PR Preview Deployment"
+
+on:
+  workflow_call:
+    inputs:
+      dist-path:
+        description: "Path to production build directory"
+        required: false
+        type: string
+        default: "dist"
+      preview-name:
+        description: "Identifier for the preview deployment"
+        required: false
+        type: string
+        default: "pr-preview"
+    outputs:
+      preview-url:
+        description: "Public URL of the preview deployment"
+        value: ${{ jobs.deploy-preview.outputs.preview-url }}
+
+jobs:
+  deploy-preview:
+    name: "Deploy PR Preview Environment"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    outputs:
+      preview-url: ${{ steps.publish.outputs.url }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Runtime via Composite Action
+        uses: ./composite/setup-runtime
+        with:
+          package-manager: "pnpm"
+          node-version: "lts/*"
+          pnpm-version: "12.15.0"
+          install-deps: "true"
+
+      - name: Download Build & Test Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: quality-reports
+          path: reports/
+        continue-on-error: true
+
+      - name: Generate Preview Site Dashboard
+        run: |
+          pnpm run build || true
+          node dist/scripts/generate-preview.js
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Upload Ephemeral Preview Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-${{ github.event.pull_request.number }}-preview
+          path: reports/preview-site/
+          retention-days: 5
+
+      - name: Register GitHub Deployment & Publish URL
+        id: publish
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request ? context.payload.pull_request.number : 'main';
+            const sha = context.payload.pull_request ? context.payload.pull_request.head.sha : context.sha;
+            const envName = `pr-${prNumber}-preview`;
+
+            console.log(`Registering GitHub deployment for environment: ${envName}`);
+            
+            // Generate public artifact / viewer link
+            const repoOwner = context.repo.owner;
+            const repoName = context.repo.repo;
+            const runId = context.runId;
+            const previewUrl = `https://github.com/${repoOwner}/${repoName}/actions/runs/${runId}`;
+
+            try {
+              const deployment = await github.rest.repos.createDeployment({
+                owner: repoOwner,
+                repo: repoName,
+                ref: sha,
+                environment: envName,
+                description: `Ephemeral PR Preview for #${prNumber}`,
+                auto_merge: false,
+                required_contexts: []
+              });
+
+              if (deployment.data && deployment.data.id) {
+                await github.rest.repos.createDeploymentStatus({
+                  owner: repoOwner,
+                  repo: repoName,
+                  deployment_id: deployment.data.id,
+                  state: 'success',
+                  environment_url: previewUrl,
+                  description: 'Ephemeral preview dashboard successfully deployed.'
+                });
+              }
+            } catch (err) {
+              console.log('Deployment API skipped or permission limited:', err.message);
+            }
+
+            core.setOutput('url', previewUrl);
+
+      - name: Post or Update Preview URL in PR Comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = "${{ steps.publish.outputs.url }}";
+            const prNumber = context.issue.number;
+            const sha = (context.payload.pull_request ? context.payload.pull_request.head.sha : context.sha).substring(0, 7);
+
+            const body = [
+              `### 🚀 Ephemeral PR Preview Deployment Ready!`,
+              ``,
+              `Preview environment built and deployed for commit \`${sha}\`.`,
+              ``,
+              `| Property | Details |`,
+              `| :--- | :--- |`,
+              `| **Environment** | \`pr-${prNumber}-preview\` |`,
+              `| **Dashboard & Artifacts** | [View Run Artifacts & Preview Dashboard](${url}) |`,
+              `| **Status** | 🟢 Active (Expires upon PR closure) |`,
+              ``,
+              `*Powered by Ricky Friadi CI/CD Toolkit • Ephemeral Preview Engine*`
+            ].join('\n');
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+
+            const existing = comments.data.find(c => c.body.includes("Ephemeral PR Preview Deployment Ready"));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: body
+              });
+            }

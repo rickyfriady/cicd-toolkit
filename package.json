@@ -1,0 +1,71 @@
+{
+  "name": "@rickyfriady/cicd-toolkit",
+  "version": "1.3.0",
+  "packageManager": "pnpm@12.15.0",
+  "description": "Production-grade reusable GitHub Actions and Dangerfile review engine",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "danger",
+    "scripts",
+    "composite",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rickyfriady/cicd-toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rickyfriady/cicd-toolkit/issues"
+  },
+  "homepage": "https://github.com/rickyfriady/cicd-toolkit#readme",
+  "scripts": {
+    "danger:ci": "danger ci --verbose",
+    "danger:local": "danger pr",
+    "danger:lint-report": "eslint . --format checkstyle --output-file reports/lint/lint-results.xml || true",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "lint": "eslint .",
+    "knip": "knip",
+    "knip:report": "knip --reporter json > reports/knip/knip-result.json || true",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "bundle:measure": "node dist/scripts/measure-bundle.js",
+    "release": "node dist/scripts/semantic-release.js",
+    "release:dry": "node dist/scripts/semantic-release.js --dry-run",
+    "publish:check": "node dist/scripts/publish-check.js",
+    "prepublishOnly": "tsc && node dist/scripts/publish-check.js",
+    "audit:report": "node scripts/generate-reports.ts --report --audit --outdated"
+  },
+  "keywords": [
+    "github-actions",
+    "ci-cd",
+    "dangerjs",
+    "code-review",
+    "quality-gate"
+  ],
+  "author": "Ricky Friadi <https://github.com/rickyfriady>",
+  "license": "MIT",
+  "dependencies": {
+    "danger": "^12.3.4",
+    "danger-plugin-istanbul-coverage": "^1.6.2",
+    "danger-plugin-lint-report": "^1.4.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.16.0",
+    "eslint-formatter-checkstyle": "^9.0.1",
+    "knip": "^5.41.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^2.1.8"
+  }
+}

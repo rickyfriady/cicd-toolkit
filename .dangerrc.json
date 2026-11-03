@@ -1,0 +1,24 @@
+{
+  "ticketPattern": "^\\[[A-Za-z0-9_-]+\\]|^(\\w+(\\([\\w-]+\\))?:)",
+  "minDescriptionLength": 50,
+  "maxChangedLines": 400,
+  "maxChangedFiles": 50,
+  "enforcePackageVersion": false,
+  "coverageThreshold": 80,
+  "blockConsole": true,
+  "blockInlineStyles": true,
+  "maxAssetSizeKB": 350,
+  "maxTotalBundleKB": 1500,
+  "maxBundleDiffIncreaseKB": 50,
+  "enforceLicenseCompliance": true,
+  "enforceSecretScanning": true,
+  "ignoredAdvisories": [
+    "GHSA-9crc-q9x8-hgqq",
+    "GHSA-5xrq-8626-4rwp",
+    "GHSA-5gmw-xhrv-c9v3",
+    "GHSA-85c8-ppgw-ccpr",
+    "GHSA-8g77-54rh-46hx",
+    "GHSA-fx2h-pf6j-xcff",
+    "GHSA-587h-7wmj-h5pm"
+  ]
+}
