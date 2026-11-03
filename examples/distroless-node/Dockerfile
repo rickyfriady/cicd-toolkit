@@ -8,8 +8,8 @@ FROM node:lts-alpine AS builder
 
 WORKDIR /app
 
-# Enable Corepack and pnpm LTS
-RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
+# Install pnpm LTS
+RUN npm install -g pnpm@12.15.0
 
 # Copy dependency manifests first for maximum Docker layer caching
 COPY package.json pnpm-lock.yaml* ./
